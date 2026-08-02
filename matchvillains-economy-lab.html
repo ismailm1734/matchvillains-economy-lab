@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Heist Economy Lab · Match-3 Difficulty & Monetization Simulator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#12101A; --panel:#1B1826; --panel-2:#221D31; --border:#322B45;
+    --text:#ECE8F5; --muted:#9C93B4; --faint:#6B6382;
+    --amethyst:#A78BFA; --amethyst-deep:#7C5CFF;
+    --gold:#E7BB5A; --teal:#5DCAA5; --rose:#E27189;
+    --radius:12px;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:var(--ink); color:var(--text);
+    font-family:"Inter",system-ui,sans-serif; line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1080px; margin:0 auto; padding:40px 24px 80px}
+  header{border-bottom:1px solid var(--border); padding-bottom:28px; margin-bottom:32px}
+  .eyebrow{font-family:"IBM Plex Mono",monospace; font-size:12px; letter-spacing:.14em;
+    text-transform:uppercase; color:var(--gold); margin:0 0 12px}
+  h1{font-family:"Fraunces",serif; font-weight:500; font-size:40px; line-height:1.1;
+    margin:0 0 10px; letter-spacing:-.01em}
+  h1 .thin{color:var(--muted); font-weight:400}
+  .lede{color:var(--muted); max-width:60ch; margin:0}
+  .byline{font-family:"IBM Plex Mono",monospace; font-size:12px; color:var(--faint); margin-top:16px}
+  .byline a{color:var(--amethyst); text-decoration:none}
+  .byline a:hover{text-decoration:underline}
+
+  h2{font-family:"Fraunces",serif; font-weight:500; font-size:22px; margin:0 0 4px}
+  .section-note{color:var(--muted); font-size:14px; margin:0 0 18px; max-width:64ch}
+
+  .grid{display:grid; grid-template-columns:340px 1fr; gap:28px; align-items:start}
+  @media(max-width:820px){ .grid{grid-template-columns:1fr} }
+
+  .panel{background:var(--panel); border:1px solid var(--border);
+    border-radius:var(--radius); padding:22px}
+  .panel + .panel{margin-top:20px}
+
+  .ctrl{margin-bottom:20px}
+  .ctrl:last-child{margin-bottom:0}
+  .ctrl-head{display:flex; justify-content:space-between; align-items:baseline; margin-bottom:8px}
+  .ctrl label{font-size:14px; font-weight:500}
+  .ctrl .val{font-family:"IBM Plex Mono",monospace; font-size:14px; color:var(--gold)}
+  .ctrl .hint{font-size:12px; color:var(--faint); margin-top:4px; line-height:1.4}
+  input[type=range]{width:100%; accent-color:var(--amethyst); cursor:pointer; height:22px}
+  input[type=range]:focus-visible{outline:2px solid var(--amethyst); outline-offset:4px; border-radius:4px}
+
+  .metrics{display:grid; grid-template-columns:repeat(2,1fr); gap:14px; margin-bottom:20px}
+  .metric{background:var(--panel-2); border:1px solid var(--border); border-radius:10px; padding:16px}
+  .metric .k{font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:.08em;
+    text-transform:uppercase; color:var(--muted); margin:0 0 6px}
+  .metric .v{font-family:"Fraunces",serif; font-size:28px; font-weight:500; line-height:1}
+  .metric .v small{font-size:15px; color:var(--muted); font-family:"Inter",sans-serif; font-weight:400}
+  .metric.accent .v{color:var(--gold)}
+  .metric.teal .v{color:var(--teal)}
+
+  .chart-title{display:flex; align-items:baseline; gap:10px; margin:0 0 2px}
+  .chart-title h3{font-size:15px; font-weight:500; margin:0}
+  .chart-title .sub{font-size:12px; color:var(--faint)}
+  svg{display:block; width:100%; height:auto; overflow:visible}
+  .legend{display:flex; gap:18px; flex-wrap:wrap; font-size:12px; color:var(--muted); margin-top:10px}
+  .legend span{display:inline-flex; align-items:center; gap:6px}
+  .swatch{width:12px; height:3px; border-radius:2px; display:inline-block}
+
+  .callout{background:var(--panel-2); border-left:3px solid var(--gold); border-radius:0;
+    padding:14px 18px; margin-top:20px; font-size:14px; color:var(--muted)}
+  .callout strong{color:var(--text); font-weight:500}
+
+  footer{margin-top:40px; padding-top:24px; border-top:1px solid var(--border);
+    font-size:13px; color:var(--faint)}
+  footer code{font-family:"IBM Plex Mono",monospace; color:var(--muted);
+    background:var(--panel); padding:2px 6px; border-radius:4px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <p class="eyebrow">Match-3 Economy Lab</p>
+    <h1>The heist ledger <span class="thin">— tuning difficulty against revenue</span></h1>
+    <p class="lede">An interactive model of how a casual match-3 game (reference: <em>Match Villains</em>) turns
+      level difficulty into money — and where pushing difficulty too far starts costing more players than it earns.</p>
+    <p class="byline">Built by İsmail Memiş · <a href="https://github.com/ismailm1734" target="_blank" rel="noopener">github.com/ismailm1734</a></p>
+  </header>
+
+  <div class="grid">
+    <!-- CONTROLS -->
+    <div>
+      <div class="panel">
+        <h2>Design levers</h2>
+        <p class="section-note">The knobs a real level/economy designer actually turns. Drag any of them and watch the whole model react.</p>
+
+        <div class="ctrl">
+          <div class="ctrl-head"><label for="baseWin">Normal-level win rate</label><span class="val" id="baseWinV">75%</span></div>
+          <input type="range" id="baseWin" min="55" max="92" value="75">
+          <p class="hint">How often players clear an ordinary level on the first try.</p>
+        </div>
+
+        <div class="ctrl">
+          <div class="ctrl-head"><label for="wallWin">Wall-level win rate</label><span class="val" id="wallWinV">35%</span></div>
+          <input type="range" id="wallWin" min="12" max="65" value="35">
+          <p class="hint">The deliberately hard "wall" levels — the moments that push players to spend.</p>
+        </div>
+
+        <div class="ctrl">
+          <div class="ctrl-head"><label for="wallEvery">Wall every N levels</label><span class="val" id="wallEveryV">15</span></div>
+          <input type="range" id="wallEvery" min="4" max="20" value="15">
+          <p class="hint">How frequently a wall shows up in the progression.</p>
+        </div>
+
+        <div class="ctrl">
+          <div class="ctrl-head"><label for="nearWinShare">"So close" share of losses</label><span class="val" id="nearWinShareV">35%</span></div>
+          <input type="range" id="nearWinShare" min="10" max="70" value="35">
+          <p class="hint">Of players who fail a level, how many ran out of moves just short of the goal.</p>
+        </div>
+
+        <div class="ctrl">
+          <div class="ctrl-head"><label for="nearBuy">Buy-rate when "so close"</label><span class="val" id="nearBuyV">40%</span></div>
+          <input type="range" id="nearBuy" min="5" max="80" value="40">
+          <p class="hint">Near-win players who buy extra moves to finish — the game's main upsell moment.</p>
+        </div>
+
+        <div class="ctrl">
+          <div class="ctrl-head"><label for="farBuy">Buy-rate on a far-off loss</label><span class="val" id="farBuyV">6%</span></div>
+          <input type="range" id="farBuy" min="0" max="30" value="6">
+          <p class="hint">Players who lost with plenty left to do, but still pay. Usually low.</p>
+        </div>
+
+        <div class="ctrl">
+          <div class="ctrl-head"><label for="price">Extra-moves pack price</label><span class="val" id="priceV">$1.99</span></div>
+          <input type="range" id="price" min="0.5" max="5" step="0.5" value="1.99">
+          <p class="hint">Revenue per in-app purchase.</p>
+        </div>
+
+        <p style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--gold);margin:26px 0 16px;padding-top:20px;border-top:1px solid var(--border)">Lives system</p>
+
+        <div class="ctrl">
+          <div class="ctrl-head"><label for="lives">Max lives</label><span class="val" id="livesV">5</span></div>
+          <input type="range" id="lives" min="3" max="7" value="5">
+          <p class="hint">Failed attempts a player has before they're gated. Fewer lives = the wait/pay gate hits sooner.</p>
+        </div>
+
+        <div class="ctrl">
+          <div class="ctrl-head"><label for="refillBuy">Lives-refill buy-rate</label><span class="val" id="refillBuyV">15%</span></div>
+          <input type="range" id="refillBuy" min="0" max="40" value="15">
+          <p class="hint">Players who, once out of lives, pay to refill instead of waiting or quitting.</p>
+        </div>
+
+        <div class="ctrl">
+          <div class="ctrl-head"><label for="refillPrice">Lives-refill price</label><span class="val" id="refillPriceV">$3.00</span></div>
+          <input type="range" id="refillPrice" min="1" max="6" step="0.5" value="3">
+          <p class="hint">Revenue per lives refill — usually priced above a single extra-moves pack.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- OUTPUTS -->
+    <div>
+      <div class="panel">
+        <h2>Cohort outcome</h2>
+        <p class="section-note">Per 1,000 new players run through the progression under the settings on the left.</p>
+        <div class="metrics">
+          <div class="metric accent"><p class="k">Revenue / 1,000 players</p><p class="v" id="mRev">$0</p></div>
+          <div class="metric teal"><p class="k">End retention</p><p class="v" id="mRet">0<small>%</small></p></div>
+          <div class="metric"><p class="k">Purchases / 1,000</p><p class="v" id="mPay">0</p></div>
+          <div class="metric"><p class="k">Revenue / player</p><p class="v" id="mArpu">$0</p></div>
+        </div>
+
+        <div class="chart-title"><h3>Difficulty curve</h3><span class="sub">gold bars = wall levels</span></div>
+        <svg id="curve" viewBox="0 0 640 180" role="img" aria-label="Difficulty per level with wall levels highlighted"></svg>
+        <div class="legend">
+          <span><span class="swatch" style="background:var(--amethyst)"></span> Normal level difficulty</span>
+          <span><span class="swatch" style="background:var(--gold)"></span> Wall level</span>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="chart-title"><h3>Where players drop off</h3><span class="sub">gold dots = wall levels</span></div>
+        <p class="section-note">Share of the starting cohort still playing at each level. The steep steps are the walls — the retention cost of difficulty, made visible.</p>
+        <svg id="survivors" viewBox="0 0 640 180" role="img" aria-label="Percentage of players still active at each level"></svg>
+        <div class="legend">
+          <span><span class="swatch" style="background:var(--teal)"></span> Players still active (%)</span>
+          <span><span class="swatch" style="background:var(--gold)"></span> Wall level</span>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="chart-title"><h3>The core trade-off</h3><span class="sub">sweep wall difficulty →</span></div>
+        <p class="section-note">Harder walls squeeze more revenue per player — until frustration churns enough players that total revenue falls. The marked point is the balance sweet spot.</p>
+        <svg id="tradeoff" viewBox="0 0 640 240" role="img" aria-label="Revenue and retention plotted against wall difficulty, with the balanced sweet spot marked"></svg>
+        <div class="legend">
+          <span><span class="swatch" style="background:var(--gold)"></span> Revenue / player</span>
+          <span><span class="swatch" style="background:var(--teal)"></span> End retention</span>
+          <span><span class="swatch" style="background:var(--amethyst)"></span> Sweet spot</span>
+        </div>
+        <div class="callout" id="insight"></div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <strong style="color:var(--muted)">How it's modelled —</strong> a 1,000-player cohort is walked level by level.
+    Match Villains is IAP-only, so there are no ads. On each level some players fail; a loss is either a
+    <em>near win</em> (out of moves just short — the moment the game offers extra moves) or a far-off loss, and
+    near-wins convert far more often. Whoever doesn't buy extra moves leans on <em>lives</em>: burn them all and you
+    hit a gate — pay to refill, wait, or quit. Churn concentrates at that gate, and walls make it worse. The numbers
+    are a designer's back-of-envelope model, not live studio data — the point is the <em>shape</em>, not a forecast.
+  </footer>
+</div>
+
+<script>
+// ---- State: every lever the UI controls -------------------------------------
+const S = { baseWin:0.75, wallWin:0.35, wallEvery:15, nearWinShare:0.35, nearBuy:0.40, farBuy:0.06, price:1.99,
+            lives:5, refillBuy:0.15, refillPrice:3.00 };
+const LEVELS = 120;            // progression length simulated
+const START  = 1000;          // cohort size
+// Match Villains is IAP-only (no ads). Extra-moves upsell on near-wins; a lives gate handles the rest.
+const WALL_MULT      = 1.8;    // walls amplify churn at the lives gate
+const GATE_QUIT      = 0.35;   // share of out-of-lives players (who don't refill) who quit for good
+const RESIDUAL_CHURN = 0.015;  // small churn among strugglers who never hit the lives gate
+
+const isWall = (i, every) => i > 0 && i % every === 0;
+
+// ---- The model: run one cohort through the whole progression ----------------
+function simulate(p){
+  let alive = START, iap = 0, everPaid = 0;
+  const curve = [];
+  for(let i=1;i<=LEVELS;i++){
+    const wall = isWall(i, p.wallEvery);
+    const win  = wall ? p.wallWin : p.baseWin;
+    const fail = 1 - win;
+    curve.push({ level:i, difficulty:1-win, wall });
+
+    const failers  = alive * fail;
+    // A loss is either a "near win" (out of moves just short → prime upsell moment) or a "far" loss.
+    const nearFail = failers * p.nearWinShare;
+    const farFail  = failers - nearFail;
+    const nearBuyers = nearFail * p.nearBuy;                   // "so close" → buy extra moves, pass
+    const farBuyers  = farFail  * p.farBuy;                    // far off → rarely pays
+    iap += (nearBuyers + farBuyers) * p.price;
+    everPaid += nearBuyers + farBuyers;
+
+    // Everyone who failed and DIDN'T buy extra moves leans on lives, retrying the level.
+    const strugglers = (nearFail - nearBuyers) + (farFail - farBuyers);
+    // Chance of burning every life before a win ≈ fail^lives (fail that many times in a row).
+    const gateHit      = strugglers * Math.pow(fail, p.lives); // ran out of lives → hit the gate
+    const refillBuyers = gateHit * p.refillBuy;                // pay to refill → keep going
+    iap += refillBuyers * p.refillPrice;
+    everPaid += refillBuyers;
+
+    // Churn happens mostly at the lives gate; walls make it worse.
+    const wallMult  = wall ? WALL_MULT : 1;
+    const gateQuit  = (gateHit - refillBuyers) * GATE_QUIT * wallMult;      // quit at the gate
+    const softChurn = (strugglers - gateHit)   * RESIDUAL_CHURN * wallMult; // never gated, minor drop
+    alive = Math.max(0, alive - gateQuit - softChurn);
+    curve[curve.length-1].survivors = alive / START;          // retention at this level
+  }
+  return {
+    curve,
+    revenue: iap,
+    retention: alive / START,
+    revPerPlayer: iap / START,
+    payerShare: Math.min(1, everPaid / START),  // approx share who ever paid
+    purchases: everPaid                          // total IAP events per 1,000 starters
+  };
+}
+
+// ---- Trade-off sweep: vary wall difficulty, hold everything else ------------
+function sweep(p){
+  const pts = [];
+  for(let w=12; w<=65; w+=1){
+    const r = simulate({ ...p, wallWin:w/100 });
+    pts.push({ wallWin:w/100, rev:r.revPerPlayer, ret:r.retention });
+  }
+  // balance objective: reward both money and staying power
+  let best = pts[0], bestScore = -1;
+  for(const pt of pts){
+    const score = pt.rev * pt.ret;         // simple, defensible balance metric
+    if(score > bestScore){ bestScore = score; best = pt; }
+  }
+  return { pts, best };
+}
+
+// ---- Rendering --------------------------------------------------------------
+const $ = id => document.getElementById(id);
+const NS = "http://www.w3.org/2000/svg";
+function el(tag, attrs){ const e=document.createElementNS(NS,tag);
+  for(const k in attrs) e.setAttribute(k, attrs[k]); return e; }
+function css(v){ return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
+
+function drawCurve(curve){
+  const svg = $("curve"); svg.innerHTML="";
+  const W=640,H=180, pad=8, base=H-20, top=16;
+  const n=curve.length, bw=(W-pad*2)/n;
+  const maxD=1;
+  const amethyst=css('--amethyst'), gold=css('--gold');
+  curve.forEach((c,i)=>{
+    const h=(c.difficulty/maxD)*(base-top);
+    const x=pad+i*bw;
+    svg.appendChild(el("rect",{ x:x+0.5, y:base-h, width:Math.max(1,bw-1), height:h,
+      rx:1, fill:c.wall?gold:amethyst, opacity:c.wall?0.95:0.55 }));
+  });
+  const axis=el("line",{ x1:pad, y1:base, x2:W-pad, y2:base,
+    stroke:css('--border'), "stroke-width":1 }); svg.appendChild(axis);
+  [1,30,60,90,120].forEach(l=>{
+    const x=pad+(l-0.5)*bw;
+    const t=el("text",{ x, y:H-4, "text-anchor":"middle",
+      "font-family":"IBM Plex Mono, monospace","font-size":10, fill:css('--faint') });
+    t.textContent="L"+l; svg.appendChild(t);
+  });
+}
+
+function drawSurvivors(curve){
+  const svg=$("survivors"); svg.innerHTML="";
+  const W=640,H=180, L=32,R=12,T=12,B=28;
+  const x0=L,x1=W-R,y0=H-B,y1=T, n=curve.length;
+  const xL = i => x0 + (i/(n-1))*(x1-x0);
+  const yP = p => y0 - p*(y0-y1);
+  // horizontal gridlines at 0 / 50 / 100%
+  [0,0.5,1].forEach(g=>{
+    const y=yP(g);
+    svg.appendChild(el("line",{x1:x0,y1:y,x2:x1,y2:y,stroke:css('--border'),
+      "stroke-width":1, opacity:g===0?1:0.4}));
+    const t=el("text",{x:x0-6,y:y+3,"text-anchor":"end",
+      "font-family":"IBM Plex Mono, monospace","font-size":10,fill:css('--faint')});
+    t.textContent=Math.round(g*100); svg.appendChild(t);
+  });
+  // survivor line + soft area fill
+  let d="";
+  curve.forEach((c,i)=>{ d+=(i?"L":"M")+xL(i).toFixed(1)+" "+yP(c.survivors).toFixed(1)+" "; });
+  svg.appendChild(el("path",{ d:d+"L"+xL(n-1).toFixed(1)+" "+y0+" L"+x0+" "+y0+" Z",
+    fill:css('--teal'), opacity:0.10 }));
+  svg.appendChild(el("path",{ d, fill:"none", stroke:css('--teal'),
+    "stroke-width":2.5, "stroke-linejoin":"round" }));
+  // gold dots at wall levels — where the steps happen
+  curve.forEach((c,i)=>{ if(c.wall)
+    svg.appendChild(el("circle",{cx:xL(i),cy:yP(c.survivors),r:2.5,fill:css('--gold')})); });
+  // x labels
+  [1,30,60,90,120].forEach(l=>{
+    const t=el("text",{x:xL(l-1),y:H-4,"text-anchor":"middle",
+      "font-family":"IBM Plex Mono, monospace","font-size":10,fill:css('--faint')});
+    t.textContent="L"+l; svg.appendChild(t);
+  });
+}
+
+function drawTradeoff(sw){
+  const svg=$("tradeoff"); svg.innerHTML="";
+  const W=640,H=240, L=44,R=16,T=16,B=32;
+  const x0=L, x1=W-R, y0=H-B, y1=T;
+  const pts=sw.pts;
+  const xw = w => x0 + ((w-0.12)/(0.65-0.12))*(x1-x0);
+  const maxRev=Math.max(...pts.map(p=>p.rev),0.0001);
+  const yRev = r => y0 - (r/maxRev)*(y0-y1);
+  const yRet = t => y0 - t*(y0-y1);
+
+  // grid baseline
+  svg.appendChild(el("line",{x1:x0,y1:y0,x2:x1,y2:y0,stroke:css('--border'),"stroke-width":1}));
+  // x labels (easy → hard = lower win rate on the left is harder; label by win rate)
+  [65,50,35,20].forEach(pc=>{
+    const x=xw(pc/100);
+    const t=el("text",{x,y:H-10,"text-anchor":"middle","font-family":"IBM Plex Mono, monospace","font-size":10,fill:css('--faint')});
+    t.textContent=pc+"% win"; svg.appendChild(t);
+  });
+
+  const path=(pts,accessor,color)=>{
+    let d="";
+    pts.forEach((p,i)=>{ d+=(i?"L":"M")+xw(p.wallWin).toFixed(1)+" "+accessor(p).toFixed(1)+" "; });
+    svg.appendChild(el("path",{d,fill:"none",stroke:color,"stroke-width":2.5,"stroke-linejoin":"round"}));
+  };
+  path(pts,p=>yRet(p.ret),css('--teal'));
+  path(pts,p=>yRev(p.rev),css('--gold'));
+
+  // sweet spot marker
+  const b=sw.best;
+  const sx=xw(b.wallWin), sy=yRev(b.rev);
+  svg.appendChild(el("line",{x1:sx,y1:y1,x2:sx,y2:y0,stroke:css('--amethyst'),"stroke-width":1,"stroke-dasharray":"4 4",opacity:.7}));
+  svg.appendChild(el("circle",{cx:sx,cy:sy,r:5,fill:css('--amethyst'),stroke:css('--ink'),"stroke-width":2}));
+  const lbl=el("text",{x:sx, y:y1+2, "text-anchor": sx>W/2?"end":"start",
+    "font-family":"IBM Plex Mono, monospace","font-size":10,fill:css('--amethyst')});
+  lbl.textContent="sweet spot · "+Math.round(b.wallWin*100)+"% win";
+  lbl.setAttribute("x", sx + (sx>W/2? -8:8));
+  svg.appendChild(lbl);
+}
+
+function render(){
+  const r=simulate(S);
+  $("mRev").textContent="$"+r.revenue.toFixed(0);
+  $("mRet").innerHTML=Math.round(r.retention*100)+"<small>%</small>";
+  $("mPay").textContent=Math.round(r.purchases).toLocaleString();
+  $("mArpu").textContent="$"+r.revPerPlayer.toFixed(2);
+  drawCurve(r.curve);
+  drawSurvivors(r.curve);
+
+  const sw=sweep(S);
+  drawTradeoff(sw);
+
+  const bestWin=Math.round(sw.best.wallWin*100);
+  const cur=Math.round(S.wallWin*100);
+  let verdict;
+  if(cur < bestWin-4) verdict="Your walls are <strong>harder than the sweet spot</strong> — you're leaving retention (and long-run revenue) on the table.";
+  else if(cur > bestWin+4) verdict="Your walls are <strong>softer than the sweet spot</strong> — gentle on players, but under-monetising the frustration moments.";
+  else verdict="You're <strong>right around the balance point</strong> — squeezing revenue without bleeding players.";
+  $("insight").innerHTML="At the current settings, revenue-per-player peaks in balance near a <strong>"+bestWin+"% wall win-rate</strong>. "+verdict;
+}
+
+// ---- Wire up controls -------------------------------------------------------
+const bind=(id, key, fmt, scale=1)=>{
+  const input=$(id), out=$(id+"V");
+  input.addEventListener("input",()=>{
+    S[key]=parseFloat(input.value)/scale;
+    out.textContent=fmt(parseFloat(input.value));
+    render();
+  });
+};
+bind("baseWin","baseWin",v=>v+"%",100);
+bind("wallWin","wallWin",v=>v+"%",100);
+bind("wallEvery","wallEvery",v=>v,1);
+bind("nearWinShare","nearWinShare",v=>v+"%",100);
+bind("nearBuy","nearBuy",v=>v+"%",100);
+bind("farBuy","farBuy",v=>v+"%",100);
+bind("price","price",v=>"$"+Number(v).toFixed(2),1);
+bind("lives","lives",v=>v,1);
+bind("refillBuy","refillBuy",v=>v+"%",100);
+bind("refillPrice","refillPrice",v=>"$"+Number(v).toFixed(2),1);
+
+render();
+</script>
+</body>
+</html>
